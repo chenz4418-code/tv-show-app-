@@ -3,6 +3,7 @@ from streamlit_agraph import agraph, Node, Edge, Config
 import base64
 import requests
 import streamlit.components.v1 as components
+import traceback
 
 # ==========================================
 # 1. 核心工具函数：创建Base64 SVG图片
@@ -277,7 +278,7 @@ DB = {
                 "E06 长城守望者 - 琼恩成为守夜人总司令；艾莉亚失明。",
                 "E07 卡斯特梅的雨季 - 奥柏伦与魔山决斗；奥柏伦死亡。",
                 "E08 弥莎 - 乔佛里被毒杀；提利昂被指控。",
-                "E09 长城之战 - 野人进攻城堡；琼恩击败曼斯。",
+                "E09 城堡之战 - 野人进攻城堡；琼恩击败曼斯。",
                 "E10 孩子们 - 提利昂杀死泰温；龙妈征服弥林。"
             ],
             "第五季 (S5)": [
@@ -441,11 +442,19 @@ DB = {
 # 4. 侧边栏选择
 # ==========================================
 
+# 初始化当前剧集
+if 'current_show' not in st.session_state:
+    st.session_state.current_show = "Home"
+
 with st.sidebar:
-    st.title("📼 欧美剧速通系统")
+    # 使用固定的标题，但通过CSS类区分
+    st.markdown("<h1 class='sidebar-title'>📼 欧美剧速通系统</h1>", unsafe_allow_html=True)
     st.markdown("---")
     
-    # 剧集选择 - 显示所有三部剧集的按钮
+    # 添加系统首页按钮
+    if st.button("🏠 系统首页 / Welcome", key="home_button", type="primary"):
+        st.session_state.current_show = "Home"
+    
     st.markdown("### 📌 选择剧集：")
     
     # 为每个剧集创建一个按钮
@@ -456,26 +465,135 @@ with st.sidebar:
             st.session_state.score = 0
             st.session_state.show_next = False
     
-    # 初始化当前剧集
-    if 'current_show' not in st.session_state:
-        st.session_state.current_show = list(DB.keys())[0]
-    
     selected_show = st.session_state.current_show
 
-# 获取当前剧集数据
-data = DB[selected_show]
-
 # ==========================================
-# 5. 动态主题（变色龙引擎）
+# 5. 首页内容
 # ==========================================
 
-theme_color = data['theme_color']
-show_name = selected_show
+if st.session_state.current_show == "Home":
+    # 首页样式 - Netflix风格
+    home_css = """
+    <style>
+        .main, .reportview-container, .stApp {
+            background-color: #000000 !important;
+            background-image: linear-gradient(135deg, #000000 0%%, #1a1a1a 100%%) !important;
+        }
+        
+        body {
+            background-color: #000000 !important;
+            color: #ffffff !important;
+            font-family: 'Arial', sans-serif !important;
+        }
+        
+        h1 {
+            color: #E50914 !important;
+            font-size: 4rem !important;
+            font-weight: bold !important;
+            text-align: center !important;
+            margin-top: 50px !important;
+            margin-bottom: 20px !important;
+        }
+        
+        h2 {
+            color: #ffffff !important;
+            font-size: 1.5rem !important;
+            text-align: center !important;
+            margin-bottom: 50px !important;
+            opacity: 1;
+        }
+        /* 增强文本对比度 */
+        .markdown-text-container {
+            color: #ffffff !important;
+            opacity: 1 !important;
+        }
+        /* 确保所有文本都清晰可见 */
+        p, span, div {
+            color: #ffffff !important;
+            opacity: 1 !important;
+        }
+        
+        .poster-column {
+            text-align: center !important;
+            padding: 20px !important;
+        }
+        
+        .poster-column img {
+            border-radius: 8px !important;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5) !important;
+            transition: transform 0.3s ease !important;
+            margin-bottom: 15px !important;
+        }
+        
+        .poster-column img:hover {
+            transform: scale(1.05) !important;
+        }
+        
+        .poster-column h3 {
+            color: #ffffff !important;
+            font-size: 1.2rem !important;
+            font-weight: bold !important;
+            margin-top: 10px !important;
+        }
+        
+        /* 确保侧边栏样式不受影响 */
+        [data-testid="stSidebar"] {
+            background-color: rgba(26, 26, 46, 0.98) !important;
+            color: #ffffff !important;
+        }
+        /* 侧边栏按钮样式 */
+        [data-testid="stSidebar"] .stButton > button {
+            color: #ffffff !important;
+            background-color: rgba(255, 255, 255, 0.1) !important;
+            border: 1px solid rgba(255, 255, 255, 0.2) !important;
+        }
+        /* 侧边栏标题样式 */
+        .sidebar-title {
+            font-size: 1.7rem !important;
+        }
+    </style>
+    """
+    
+    st.markdown(home_css, unsafe_allow_html=True)
+    
+    # 首页内容
+    st.title("一部好剧，一段旅程")
+    st.markdown("---")
+    st.subheader("🎬 选择左侧剧集，开始您的剧情速通之旅")
+    st.markdown("探索经典欧美剧集的人物关系、剧情脉络，以及趣味问答挑战。")
+    
+    # 三列展示剧集海报和剧名
+    cols = st.columns(3)
+    for i, (show_name, show_data) in enumerate(DB.items()):
+        with cols[i]:
+            st.image(show_data['poster'], width='stretch')
+            st.markdown(f"### {show_name}")
+            st.caption(show_data['genre'])
+            st.markdown(f"豆瓣: {show_data['rates']['豆瓣']} | IMDb: {show_data['rates']['IMDb']}")
 
-# 根据不同剧集创建独特的CSS样式
-if show_name == "怪奇物语 (Stranger Things)":
-    # 怪奇物语：80年代复古风格，霓虹色调，暗背景
-    css = """
+else:
+    # 安全检查：确保selected_show在DB中存在
+    if selected_show in DB:
+        # 获取当前剧集数据
+        data = DB[selected_show]
+    else:
+        st.error(f"剧集 '{selected_show}' 数据不存在")
+        st.write("请从左侧选择一个有效剧集")
+        # 重置为首页
+        st.session_state.current_show = "Home"
+        st.rerun()
+    
+    # ==========================================
+    # 5. 动态主题（变色龙引擎）
+    # ==========================================
+    
+    theme_color = data['theme_color']
+    show_name = selected_show
+
+    # 根据不同剧集创建独特的CSS样式
+    if show_name == "怪奇物语 (Stranger Things)":
+        # 怪奇物语：80年代复古风格，霓虹色调，暗背景
+        css = """
     <style>
         /* 页面背景 - 更具体的选择器 */
         .main, .reportview-container, .stApp {
@@ -599,10 +717,10 @@ if show_name == "怪奇物语 (Stranger Things)":
         }
     </style>
     """
-    css = css.replace('{0}', theme_color)
-elif show_name == "权力的游戏 (Game of Thrones)":
-    # 权力的游戏：中世纪史诗风格，暗红金色，厚重感
-    css = """
+        css = css.replace('{0}', theme_color)
+    elif show_name == "权力的游戏 (Game of Thrones)":
+        # 权力的游戏：中世纪史诗风格，暗红金色，厚重感
+        css = """
     <style>
         /* 页面背景 - 更具体的选择器 */
         .main, .reportview-container, .stApp {
@@ -723,10 +841,10 @@ elif show_name == "权力的游戏 (Game of Thrones)":
         }
     </style>
     """
-    css = css.replace('{0}', theme_color)
-elif show_name == "绝命毒师 (Breaking Bad)":
-    # 绝命毒师：改为深色背景，保持绿色主题
-    css = """
+        css = css.replace('{0}', theme_color)
+    elif show_name == "绝命毒师 (Breaking Bad)":
+        # 绝命毒师：改为深色背景，保持绿色主题
+        css = """
     <style>
         /* 页面背景 - 更具体的选择器 */
         .main, .reportview-container, .stApp {
@@ -850,189 +968,164 @@ elif show_name == "绝命毒师 (Breaking Bad)":
         }
     </style>
     """
-    css = css.replace('{0}', theme_color)
-else:
-    # 默认样式
-    css = """
+        css = css.replace('{0}', theme_color)
+    # 应用动态CSS
+    st.markdown(css, unsafe_allow_html=True)
+    
+    # 为剧集页面添加侧边栏标题样式（与首页保持一致）
+    st.markdown("""
     <style>
-        /* 标题颜色 */
-        h1, h2, h3, h4 {{
-            color: {theme_color} !important;
-        }}
-        
-        /* 按钮颜色 */
-        .stButton > button {{
-            color: white;
-            background-color: {theme_color};
-            border-radius: 5px;
-        }}
-        
-        /* 侧边栏高亮 */
-        .css-1d391kg {{
-            background-color: {theme_color}22;
-        }}
-        
-        /* 进度条颜色 */
-        .stProgress > div > div > div {{
-            background-color: {theme_color};
-        }}
-        
-        /* 卡片样式 */
-        .stExpander {{
-            border-left: 4px solid {theme_color};
-        }}
+        .sidebar-title {
+            font-size: 1.7rem !important;
+        }
     </style>
-    """
-    css = css.format(theme_color)
-
-# 应用动态CSS
-st.markdown(css, unsafe_allow_html=True)
-
-# ==========================================
-# 6. 主内容区域
-# ==========================================
-
-# Banner
-col1, col2 = st.columns([1, 4])
-with col1:
-    st.image(data['poster'], width='stretch', caption="剧集海报")
-with col2:
-    st.markdown(f"# {selected_show.split('(')[0]}")
-    st.markdown(f"### {data['genre']}")
-    st.markdown(f"> {data['summary']}")
-    st.markdown(f"**豆瓣**: {data['rates']['豆瓣']} | **IMDb**: {data['rates']['IMDb']}")
-
-st.divider()
-
-# Tabs
-tab1, tab2, tab3 = st.tabs(["🕸️ 人物关系图谱", "📖 剧情速通", "🧠 趣味闯关"])
-
-# --- Tab 1: 人物关系图谱 ---
-with tab1:
+    """, unsafe_allow_html=True)
     
-    try:
-        nodes = []
-        edges = []
-        
-        # 创建节点
-        for n_id, n_img in data['nodes']:
-            nodes.append(Node(
-                id=n_id, 
-                label=n_id, 
-                size=30, 
-                shape="circularImage", 
-                image=n_img
-            ))
-        
-        # 创建边
-        for src, tgt, lbl in data['edges']:
-            edges.append(Edge(
-                source=src, 
-                target=tgt, 
-                label=lbl, 
-                color="#bdc3c7", 
-                length=250
-            ))
-        
-        # 配置
-        config = Config(
-            width="100%", 
-            height=600, 
-            directed=True, 
-            physics=True, 
-            nodeHighlightBehavior=True, 
-            highlightColor="#F7A072", 
-            collapsible=False
-        )
-        
-        # 为Config添加背景配置
-        if show_name == "怪奇物语 (Stranger Things)":
-            config.background = "#1a1a2e"
-        elif show_name == "权力的游戏 (Game of Thrones)":
-            config.background = "#1a0d00"
-        elif show_name == "绝命毒师 (Breaking Bad)":
-            config.background = "#0d1b2a"
-        
-        # 绘制图谱
-        agraph(nodes=nodes, edges=edges, config=config)
-        
+    # ==========================================
+    # 6. 主内容区域
+    # ==========================================
 
-        
-    except Exception as e:
-        st.error(f"图谱加载失败: {e}")
+    # Banner
+    col1, col2 = st.columns([1, 4])
+    with col1:
+        st.image(data['poster'], width='stretch', caption="剧集海报")
+    with col2:
+        st.markdown(f"# {selected_show.split('(')[0]}")
+        st.markdown(f"### {data['genre']}")
+        st.markdown(f"> {data['summary']}")
+        st.markdown(f"**豆瓣**: {data['rates']['豆瓣']} | **IMDb**: {data['rates']['IMDb']}")
 
-# --- Tab 2: 剧情速通 ---
-with tab2:
-    st.markdown("### 📝 全季剧情速通")
-    
-    # 展开所有季度
-    for season_name, episodes in data['episodes'].items():
-        with st.expander(season_name, expanded=True):
-            for idx, ep in enumerate(episodes, 1):
-                st.write(f"**{ep}**")
+    st.divider()
 
-# --- Tab 3: 趣味闯关 ---
-with tab3:
-    st.markdown("### 🧠 剧迷大挑战")
-    
-    # 初始化状态
-    if 'quiz_idx' not in st.session_state:
-        st.session_state.quiz_idx = 0
-    if 'score' not in st.session_state:
-        st.session_state.score = 0
-    if 'show_next' not in st.session_state:
-        st.session_state.show_next = False
-    
-    quiz_list = data['quiz']
-    current_idx = st.session_state.quiz_idx
-    
-    # 显示进度
-    st.progress(current_idx / len(quiz_list))
-    
-    if current_idx < len(quiz_list):
-        # 当前题目
-        current_question = quiz_list[current_idx]
-        st.markdown(f"**问题 {current_idx + 1}/{len(quiz_list)}**: {current_question['q']}")
+    # Tabs
+    tab1, tab2, tab3 = st.tabs(["🕸️ 人物关系图谱", "📖 剧情速通", "🧠 趣味闯关"])
+
+    # --- Tab 1: 人物关系图谱 ---
+    with tab1:
         
-        # 用户选择
-        user_answer = st.radio(
-            "请选择答案：",
-            current_question['options'],
-            key=f"quiz_{selected_show}_{current_idx}"
-        )
-        
-        # 提交答案表单
-        with st.form(key=f"form_{current_idx}"):
-            submit_button = st.form_submit_button("提交答案")
-        
-        if submit_button:
-            # 检查答案
-            if user_answer == current_question['ans']:
-                st.success("✅ 正确！")
-                st.session_state.score += 1
-            else:
-                st.error(f"❌ 错误，正确答案是：{current_question['ans']}")
+        try:
+            nodes = []
+            edges = []
             
-            st.session_state.show_next = True
+            # 创建节点
+            for n_id, n_img in data['nodes']:
+                nodes.append(Node(
+                    id=n_id, 
+                    label=n_id, 
+                    size=30, 
+                    shape="circularImage", 
+                    image=n_img
+                ))
+            
+            # 创建边
+            for src, tgt, lbl in data['edges']:
+                edges.append(Edge(
+                    source=src, 
+                    target=tgt, 
+                    label=lbl, 
+                    color="#bdc3c7", 
+                    length=250
+                ))
+            
+            # 配置
+            config = Config(
+                width="100%", 
+                height=600, 
+                directed=True, 
+                physics=True, 
+                nodeHighlightBehavior=True, 
+                highlightColor="#F7A072", 
+                collapsible=False
+            )
+            
+            # 为Config添加背景配置
+            if show_name == "怪奇物语 (Stranger Things)":
+                config.background = "#1a1a2e"
+            elif show_name == "权力的游戏 (Game of Thrones)":
+                config.background = "#1a0d00"
+            elif show_name == "绝命毒师 (Breaking Bad)":
+                config.background = "#0d1b2a"
+            
+            # 绘制图谱
+            agraph(nodes=nodes, edges=edges, config=config)
+            
+
+            
+        except Exception as e:
+            st.error(f"图谱加载失败: {e}")
+
+    # --- Tab 2: 剧情速通 ---
+    with tab2:
+        st.markdown("### 📝 全季剧情速通")
         
-        # 下一题按钮
-        if st.session_state.show_next:
-            if st.button("➡️ 下一题", key=f"next_{current_idx}"):
-                st.session_state.quiz_idx += 1
+        # 展开所有季度
+        for season_name, episodes in data['episodes'].items():
+            with st.expander(season_name, expanded=True):
+                for idx, ep in enumerate(episodes, 1):
+                    st.write(f"**{ep}**")
+
+    # --- Tab 3: 趣味闯关 ---
+    with tab3:
+        st.markdown("### 🧠 剧迷大挑战")
+        
+        # 初始化状态
+        if 'quiz_idx' not in st.session_state:
+            st.session_state.quiz_idx = 0
+        if 'score' not in st.session_state:
+            st.session_state.score = 0
+        if 'show_next' not in st.session_state:
+            st.session_state.show_next = False
+        
+        quiz_list = data['quiz']
+        current_idx = st.session_state.quiz_idx
+        
+        # 显示进度
+        st.progress(current_idx / len(quiz_list))
+        
+        if current_idx < len(quiz_list):
+            # 当前题目
+            current_question = quiz_list[current_idx]
+            st.markdown(f"**问题 {current_idx + 1}/{len(quiz_list)}**: {current_question['q']}")
+            
+            # 用户选择
+            user_answer = st.radio(
+                "请选择答案：",
+                current_question['options'],
+                key=f"quiz_{selected_show}_{current_idx}"
+            )
+            
+            # 提交答案表单
+            with st.form(key=f"form_{current_idx}"):
+                submit_button = st.form_submit_button("提交答案")
+            
+            if submit_button:
+                # 检查答案
+                if user_answer == current_question['ans']:
+                    st.success("✅ 正确！")
+                    st.session_state.score += 1
+                else:
+                    st.error(f"❌ 错误，正确答案是：{current_question['ans']}")
+                
+                st.session_state.show_next = True
+            
+            # 下一题按钮
+            if st.session_state.show_next:
+                if st.button("➡️ 下一题", key=f"next_{current_idx}"):
+                    st.session_state.quiz_idx += 1
+                    st.session_state.show_next = False
+                    st.rerun()
+        
+        else:
+            # 显示结果
+            st.balloons()
+            st.success(f"🏆 挑战结束！你的得分：{st.session_state.score} / {len(quiz_list)}")
+            
+            # 重玩按钮
+            if st.button("🔄 再玩一次", key="restart_quiz"):
+                st.session_state.quiz_idx = 0
+                st.session_state.score = 0
                 st.session_state.show_next = False
                 st.rerun()
-    
-    else:
-        # 显示结果
-        st.balloons()
-        st.success(f"🏆 挑战结束！你的得分：{st.session_state.score} / {len(quiz_list)}")
-        
-        # 重玩按钮
-        if st.button("🔄 再玩一次", key="restart_quiz"):
-            st.session_state.quiz_idx = 0
-            st.session_state.score = 0
-            st.session_state.show_next = False
-            st.rerun()
 
 # 页脚
 st.markdown("---")
